@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Bit Madness Bracket</title>
+<style>
+*{box-sizing:border-box;}
+body{font-family:Arial;margin:0;padding:12px;background:#f5f5f5;}
+h2{font-size:16px;font-weight:500;margin:0 0 8px;}
+#bracket-wrap{overflow-x:auto;}
+#bracket{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;min-width:1200px;}
+.side{display:grid;grid-template-columns:repeat(4,160px);gap:10px;}
+#right{direction:rtl;}
+#right .round{direction:ltr;}
+.center{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;min-width:180px;}
+.round{display:flex;flex-direction:column;justify-content:space-around;position:relative;}
+.game{border:1px solid #999;padding:3px;margin:4px 0;width:148px;background:#fff;position:relative;border-radius:3px;}
+.team{font-size:11px;padding:2px 3px;cursor:pointer;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.team:hover{background:#f0f0f0;}
+.team.selected{background:#cce5ff;color:#003d80;}
+.team.placeholder{color:#aaa;cursor:default;font-style:italic;}
+.r64 .game{margin:2px 0;}
+.r32 .game{margin:16px 0;}
+.r16 .game{margin:38px 0;}
+.r8  .game{margin:80px 0;}
+.game::after{content:"";position:absolute;right:-10px;top:50%;width:10px;height:1px;background:#999;}
+#right .game::after{right:auto;left:-10px;}
+.round:not(:last-child) .game:nth-child(odd)::before{content:"";position:absolute;right:-10px;top:50%;width:1px;height:42px;background:#999;}
+.round:not(:last-child) .game:nth-child(even)::before{content:"";position:absolute;right:-10px;bottom:50%;width:1px;height:42px;background:#999;}
+#right .round:not(:last-child) .game:nth-child(odd)::before{right:auto;left:-10px;}
+#right .round:not(:last-child) .game:nth-child(even)::before{right:auto;left:-10px;}
+.side .round:last-child .game::after{display:none;}
+.center-label{font-size:11px;color:#666;text-align:center;font-weight:500;}
+.champ-label{font-size:13px;font-weight:500;text-align:center;margin-top:4px;}
+#winner-display{border:1px solid #999;padding:6px 10px;border-radius:4px;min-width:148px;text-align:center;font-size:12px;color:#aaa;background:#f9f9f9;}
+#mode-banner{padding:8px 14px;border-radius:6px;font-size:13px;font-weight:500;margin-bottom:10px;display:none;}
+#mode-banner.final{background:#d1ecf1;color:#0c5460;display:block;}
+#mode-banner.picking{background:#fff3cd;color:#856404;display:block;}
+#submit-area{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;margin:16px 0;max-width:400px;}
+#submit-area h3{margin:0 0 10px;font-size:14px;font-weight:500;}
+#submit-area input{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:4px;font-size:13px;margin-bottom:8px;}
+#submit-area button{padding:7px 18px;background:#003d80;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;}
+#submit-area button:hover{background:#002a5c;}
+#submit-msg{font-size:12px;margin-top:6px;display:none;}
+#lock-area{margin:10px 0;display:none;}
+#lock-btn{padding:8px 20px;background:#6c2e00;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;font-weight:500;}
+#lock-btn:hover{background:#4a1f00;}
+#sync-status{font-size:11px;color:#888;margin-bottom:8px;}
+#players-section{margin-top:20px;}
+#players-section h3{font-size:14px;font-weight:500;margin:0 0 10px;}
+#player-buttons{display:flex;flex-wrap:wrap;gap:10px;}
+.player-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.player-btn{padding:8px 16px;background:#fff;border:1px solid #aaa;border-radius:20px;font-size:13px;cursor:pointer;font-weight:500;}
+.player-btn:hover{background:#f0f0f0;}
+.player-btn.active{background:#003d80;color:#fff;border-color:#003d80;}
+.player-score{font-size:11px;color:#555;text-align:center;}
+#viewer-area{margin-top:20px;display:none;}
+#viewer-area h3{font-size:14px;font-weight:500;margin:0 0 8px;}
+#viewer-bracket-wrap{overflow-x:auto;}
+#viewer-bracket{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;min-width:1200px;}
+.vside{display:grid;grid-template-columns:repeat(4,160px);gap:10px;}
+#vright{direction:rtl;}
+#vright .vround{direction:ltr;}
+.vcenter{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;min-width:180px;}
+.vround{display:flex;flex-direction:column;justify-content:space-around;position:relative;}
+.vgame{border:1px solid #bbb;padding:3px;margin:4px 0;width:148px;background:#fafafa;position:relative;border-radius:3px;}
+.vteam{font-size:11px;padding:2px 3px;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#333;}
+.vteam.vselected{background:#cce5ff;color:#003d80;font-weight:500;}
+.vteam.vcorrect{background:#d4edda;color:#155724;font-weight:500;}
+.vteam.vincorrect{background:#f8d7da;color:#721c24;}
+.vteam.vplaceholder{color:#bbb;font-style:italic;}
+.vr64 .vgame{margin:2px 0;}
+.vr32 .vgame{margin:16px 0;}
+.vr16 .vgame{margin:38px 0;}
+.vr8  .vgame{margin:80px 0;}
+.vgame::after{content:"";position:absolute;right:-10px;top:50%;width:10px;height:1px;background:#bbb;}
+#vright .vgame::after{right:auto;left:-10px;}
+.vround:not(:last-child) .vgame:nth-child(odd)::before{content:"";position:absolute;right:-10px;top:50%;width:1px;height:42px;background:#bbb;}
+.vround:not(:last-child) .vgame:nth-child(even)::before{content:"";position:absolute;right:-10px;bottom:50%;width:1px;height:42px;background:#bbb;}
+#vright .vround:not(:last-child) .vgame:nth-child(odd)::before{right:auto;left:-10px;}
+#vright .vround:not(:last-child) .vgame:nth-child(even)::before{right:auto;left:-10px;}
+.vside .vround:last-child .vgame::after{display:none;}
+</style>
+</head>
+<body>
+
+<h2>Bit Madness Bracket</h2>
+<div id="sync-status">Connecting to database...</div>
+<div id="mode-banner"></div>
+
+<div id="bracket-wrap">
+  <div id="bracket">
+    <div class="side" id="left"></div>
+    <div class="center" id="center"></div>
+    <div class="side" id="right"></div>
+  </div>
+</div>
+
+<div id="submit-area">
+  <h3>Submit Your Bracket</h3>
+  <input type="text" id="player-name" placeholder="Your name" maxlength="30" />
+  <button onclick="submitBracket()">Submit Bracket</button>
+  <div id="submit-msg"></div>
+</div>
+
+<div id="lock-area">
+  <button id="lock-btn" onclick="lockFinal()">Lock as Final Bracket</button>
+</div>
+
+<div id="players-section">
+  <h3 id="players-title">Player Brackets (0/7)</h3>
+  <div id="player-buttons"></div>
+</div>
+
+<div id="viewer-area">
+  <h3 id="viewer-title">Viewing: </h3>
+  <div id="viewer-bracket-wrap">
+    <div id="viewer-bracket">
+      <div class="vside" id="vleft"></div>
+      <div class="vcenter" id="vcenter"></div>
+      <div class="vside" id="vright"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+const firebaseConfig = {
+  databaseURL: "https://bit-madness-default-rtdb.firebaseio.com"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ---- TEAM DATA ----
+const seedOrder = [1,16,8,9,5,12,4,13,6,11,3,14,7,10,2,15];
+const regionNames = ["Mamaroneck","Prague","Red Bridge","Copenhagen"];
+const teamNames = [
+  "1 Jack Rubbing Chest","2 Samba Buh","3 BIRD W/ FAT NUTS","4 Amen Claim","5 FIVE","6 JAKE FUCK","7 Nonno","8 Gay Jake","9 Parabola Cut","10 Booked","11 Seb-ball","12 John vs RyanAir","13 Carlo x TG","14 Monroe","15 Big Paulie","16 Ratul",
+  "1 Sepupu","2 Texting and Calling","3 The Scale","4 Jake's Canvas Shorts","5 Lil Poopy Innit","6 Jack No Rizz","7 Seb falling down","8 Jake Island","9 Geek Bar","10 The Tip","11 Fat John ordering","12 Jack Arnj","13 Samba Palate","14 Italy Carlo","15 Quelf","16 USB-C",
+  "1 Shit Boy","2 Stranded Files","3 Pod Boy","4 Rasmus Klump","5 Who is Hamza?","6 Fuck the Hulk","7 Maria","8 Jack Clash Royale","9 Finnegan Louis Armstrong","10 I'm a sluh","11 Jake Go to School","12 Seb Gold rizz party","13 FIRUABTICIAAO","14 Carlo Chancla","15 Jake Rosen chia pet","16 Spades",
+  "1 Why aren't you sleeping?","2 Seb Crashouts","3 Jack Attack","4 Jake Minutes","5 Huzz Blockers","6 Chirp U","7 Jack...Purcell","8 Jason's Graduation","9 Hands overlapping","10 Smack Cam","11 Carlo is old","12 Seb Tapes","13 Denmark Cuisine","14 Jake Eating Video","15 That's what I woulda did","16 Hello Berklee"
+];
+
+let allTeams = [];
+for(let r=0;r<4;r++){
+  for(let s=1;s<=16;s++){
+    allTeams.push({id:r*16+(s-1), region:r, seed:s, name:teamNames[r*16+(s-1)]});
+  }
+}
+function teamById(id){ return allTeams[id]; }
+
+// ---- STATE ----
+let games={}, gameIdCounter=1, gameOrder=[], champGame;
+let mode="picking", isFinalMode=false;
+let players=[], finalPicks=null;
+let activePlayerIdx=null;
+
+// ---- FIREBASE ----
+function syncStatus(msg){ document.getElementById("sync-status").textContent=msg; }
+
+// Listen for all data changes in real time
+onValue(ref(db,"bracket"), (snapshot)=>{
+  let data=snapshot.val()||{};
+  players = data.players ? Object.values(data.players) : [];
+  finalPicks = data.finalPicks || null;
+  mode = data.mode || "picking";
+  isFinalMode = (mode==="final");
+  syncStatus("Synced");
+  renderPlayerButtons();
+  updateAllScores();
+  updateUI();
+  if(isFinalMode && finalPicks){
+    applyPicksToBracket(finalPicks);
+  }
+  if(activePlayerIdx!==null && players[activePlayerIdx]){
+    renderViewerBracket(players[activePlayerIdx].picks);
+  }
+}, (error)=>{
+  syncStatus("Connection error: "+error.message);
+});
+
+function savePlayers(){
+  let obj={};
+  players.forEach((p,i)=>{ obj[i]=p; });
+  set(ref(db,"bracket/players"), obj);
+  syncStatus("Saving...");
+}
+
+function saveFinalPicksToDb(){
+  finalPicks=getCurrentPicks();
+  set(ref(db,"bracket/finalPicks"), finalPicks);
+  set(ref(db,"bracket/mode"), mode);
+  syncStatus("Saving...");
+}
+
+// ---- GAME MODEL ----
+function newGame(nextGameId,nextSlot){
+  let g={id:gameIdCounter++,teams:[null,null],winner:null,nextGameId,nextSlot,el:null,orderIdx:null};
+  games[g.id]=g; return g;
+}
+
+function renderGame(game){
+  let el=game.el; if(!el) return;
+  el.innerHTML="";
+  for(let i=0;i<2;i++){
+    let div=document.createElement("div"), t=game.teams[i];
+    if(t){
+      div.className="team"+(game.winner===t?" selected":"");
+      div.textContent=t.name;
+      div.onclick=()=>selectWinner(game,t);
+    } else {
+      div.className="team placeholder";
+      div.textContent="TBD";
+    }
+    el.appendChild(div);
+  }
+}
+
+function selectWinner(game,team){
+  if(mode==="locked") return;
+  game.winner=team;
+  renderGame(game);
+  if(game.nextGameId!=null){
+    let next=games[game.nextGameId];
+    next.teams[game.nextSlot]=team;
+    clearDownstream(next);
+    renderGame(next);
+  }
+  updateWinnerDisplay();
+  if(isFinalMode){ saveFinalPicksToDb(); updateAllScores(); refreshActiveViewer(); }
+}
+
+function clearDownstream(game){
+  game.winner=null;
+  if(game.nextGameId!=null){
+    let next=games[game.nextGameId];
+    if(next.teams[game.nextSlot]!==null){ next.teams[game.nextSlot]=null; clearDownstream(next); }
+  }
+}
+
+function makeGameEl(game){
+  let el=document.createElement("div"); el.className="game"; game.el=el; renderGame(game); return el;
+}
+
+function updateWinnerDisplay(){
+  let el=document.getElementById("winner-display"); if(!el||!champGame) return;
+  let w=champGame.winner;
+  el.textContent=w?w.name:"TBD";
+  el.style.color=w?"#000":"#aaa";
+  el.style.fontWeight=w?"500":"400";
+}
+
+function buildRegion(regionIdx,sideDiv){
+  let rTeams=allTeams.filter(t=>t.region===regionIdx);
+  let rounds=["r64","r32","r16","r8"].map(cls=>{ let d=document.createElement("div"); d.className="round "+cls; return d; });
+  let r8=newGame(null,0);
+  let r16=[newGame(r8.id,0),newGame(r8.id,1)];
+  let r32=[newGame(r16[0].id,0),newGame(r16[0].id,1),newGame(r16[1].id,0),newGame(r16[1].id,1)];
+  let r64=[];
+  for(let i=0;i<8;i++){
+    let s1=seedOrder[i*2],s2=seedOrder[i*2+1];
+    let t1=rTeams.find(t=>t.seed===s1),t2=rTeams.find(t=>t.seed===s2);
+    let g=newGame(r32[Math.floor(i/2)].id,i%2);
+    g.teams[0]=t1; g.teams[1]=t2; r64.push(g);
+    rounds[0].appendChild(makeGameEl(g));
+  }
+  r32.forEach(g=>rounds[1].appendChild(makeGameEl(g)));
+  r16.forEach(g=>rounds[2].appendChild(makeGameEl(g)));
+  rounds[3].appendChild(makeGameEl(r8));
+  rounds.forEach(r=>sideDiv.appendChild(r));
+  [...r64,...r32,...r16,r8].forEach(g=>{ g.orderIdx=gameOrder.length; gameOrder.push(g); });
+  return r8;
+}
+
+function drawBracket(){
+  games={}; gameIdCounter=1; gameOrder=[];
+  ["left","right","center"].forEach(id=>document.getElementById(id).innerHTML="");
+  champGame=newGame(null,0);
+  let semL=newGame(champGame.id,0), semR=newGame(champGame.id,1);
+  let center=document.getElementById("center");
+  let lbl0=document.createElement("div"); lbl0.className="center-label"; lbl0.textContent=regionNames[0]+" / "+regionNames[1]; center.appendChild(lbl0);
+  center.appendChild(makeGameEl(semL));
+  let cl=document.createElement("div"); cl.className="center-label"; cl.style.marginTop="8px"; cl.textContent="Championship"; center.appendChild(cl);
+  center.appendChild(makeGameEl(champGame));
+  let lbl1=document.createElement("div"); lbl1.className="center-label"; lbl1.textContent=regionNames[2]+" / "+regionNames[3]; center.appendChild(lbl1);
+  center.appendChild(makeGameEl(semR));
+  let wl=document.createElement("div"); wl.className="champ-label"; wl.textContent="Champion"; center.appendChild(wl);
+  let we=document.createElement("div"); we.id="winner-display"; we.textContent="TBD";
+  we.style.cssText="border:1px solid #999;padding:6px 10px;border-radius:4px;min-width:148px;text-align:center;font-size:12px;color:#aaa;background:#f9f9f9;";
+  center.appendChild(we);
+  let r8L0=buildRegion(0,document.getElementById("left"));
+  let r8L1=buildRegion(1,document.getElementById("left"));
+  let r8R0=buildRegion(2,document.getElementById("right"));
+  let r8R1=buildRegion(3,document.getElementById("right"));
+  r8L0.nextGameId=semL.id; r8L0.nextSlot=0;
+  r8L1.nextGameId=semL.id; r8L1.nextSlot=1;
+  r8R0.nextGameId=semR.id; r8R0.nextSlot=0;
+  r8R1.nextGameId=semR.id; r8R1.nextSlot=1;
+  semL.orderIdx=gameOrder.length; gameOrder.push(semL);
+  semR.orderIdx=gameOrder.length; gameOrder.push(semR);
+  champGame.orderIdx=gameOrder.length; gameOrder.push(champGame);
+}
+
+function applyPicksToBracket(picks){
+  gameOrder.forEach(g=>{ g.winner=null; });
+  gameOrder.forEach(g=>{
+    let isR64=g.teams[0]&&g.teams[1]&&g.teams[0].seed&&g.teams[1].seed;
+    if(!isR64){ g.teams=[null,null]; }
+  });
+  gameOrder.forEach((g,i)=>{
+    let tid=picks[i]; if(tid==null) return;
+    let team=teamById(tid); if(!team) return;
+    if(!g.teams.includes(team)) return;
+    g.winner=team;
+    if(g.nextGameId!=null){ games[g.nextGameId].teams[g.nextSlot]=team; }
+  });
+  gameOrder.forEach(g=>renderGame(g));
+  updateWinnerDisplay();
+}
+
+function getCurrentPicks(){
+  return gameOrder.map(g=>g.winner?g.winner.id:null);
+}
+
+// ---- SUBMIT ----
+function submitBracket(){
+  let name=document.getElementById("player-name").value.trim();
+  if(!name){ alert("Please enter your name."); return; }
+  let picks=getCurrentPicks();
+  let filled=picks.filter(p=>p!==null).length;
+  if(filled<63){ if(!confirm("You only have "+filled+"/63 picks filled. Submit anyway?")) return; }
+  if(players.find(p=>p.name===name)){
+    if(!confirm("A bracket for '"+name+"' already exists. Overwrite it?")) return;
+    players=players.filter(p=>p.name!==name);
+  }
+  players.push({name,picks});
+  savePlayers();
+  let msg=document.getElementById("submit-msg");
+  msg.textContent="Bracket submitted for "+name+"!";
+  msg.style.color="#155724";
+  msg.style.display="block";
+  setTimeout(()=>msg.style.display="none",3000);
+  document.getElementById("player-name").value="";
+}
+window.submitBracket=submitBracket;
+
+// ---- FINAL MODE ----
+function lockFinal(){
+  if(!confirm("Lock this as the final official bracket? Player scores will update as you make picks.")) return;
+  mode="final"; isFinalMode=true;
+  finalPicks=getCurrentPicks();
+  set(ref(db,"bracket/finalPicks"), finalPicks);
+  set(ref(db,"bracket/mode"), mode);
+  syncStatus("Saving...");
+  updateUI();
+}
+window.lockFinal=lockFinal;
+
+function saveFinalPicksToDbNow(){
+  finalPicks=getCurrentPicks();
+  set(ref(db,"bracket/finalPicks"), finalPicks);
+  syncStatus("Saving...");
+}
+
+// ---- SCORING ----
+function scorePlayer(playerPicks){
+  if(!finalPicks) return {correct:0,total:0};
+  let correct=0,total=0;
+  for(let i=0;i<63;i++){
+    if(finalPicks[i]!=null){ total++; if(playerPicks[i]===finalPicks[i]) correct++; }
+  }
+  return {correct,total};
+}
+
+function updateAllScores(){
+  players.forEach((p,i)=>{
+    let sc=scorePlayer(p.picks);
+    let el=document.getElementById("pscore-"+i);
+    if(el) el.textContent=sc.total>0?sc.correct+"/"+sc.total+" ("+Math.round(sc.correct/sc.total*100)+"%)":"";
+  });
+}
+
+// ---- PLAYER BUTTONS ----
+function renderPlayerButtons(){
+  let wrap=document.getElementById("player-buttons"); wrap.innerHTML="";
+  document.getElementById("players-title").textContent="Player Brackets ("+players.length+"/7)";
+  players.forEach((p,i)=>{
+    let bwrap=document.createElement("div"); bwrap.className="player-btn-wrap";
+    let btn=document.createElement("button"); btn.className="player-btn"+(activePlayerIdx===i?" active":"");
+    btn.textContent=p.name; btn.onclick=()=>viewPlayer(i);
+    let score=document.createElement("div"); score.className="player-score"; score.id="pscore-"+i;
+    let sc=scorePlayer(p.picks);
+    score.textContent=sc.total>0?sc.correct+"/"+sc.total+" ("+Math.round(sc.correct/sc.total*100)+"%)":"";
+    bwrap.appendChild(btn); bwrap.appendChild(score); wrap.appendChild(bwrap);
+  });
+}
+
+function viewPlayer(idx){
+  activePlayerIdx=idx;
+  renderPlayerButtons();
+  let p=players[idx];
+  document.getElementById("viewer-title").textContent="Viewing: "+p.name;
+  document.getElementById("viewer-area").style.display="block";
+  renderViewerBracket(p.picks);
+}
+
+function refreshActiveViewer(){
+  if(activePlayerIdx!==null&&players[activePlayerIdx]) renderViewerBracket(players[activePlayerIdx].picks);
+}
+
+// ---- VIEWER BRACKET ----
+function renderViewerBracket(picks){
+  let vleft=document.getElementById("vleft"),vright=document.getElementById("vright"),vcenter=document.getElementById("vcenter");
+  vleft.innerHTML=""; vright.innerHTML=""; vcenter.innerHTML="";
+  let vgames={},vgid=1,vGameOrder=[];
+  function vnewGame(nid,ns){ let g={id:vgid++,teams:[null,null],winner:null,nextGameId:nid,nextSlot:ns,el:null,orderIdx:null}; vgames[g.id]=g; return g; }
+  function vmakeEl(g){ let el=document.createElement("div"); el.className="vgame"; g.el=el; return el; }
+  function vrenderGame(g){
+    let el=g.el; if(!el) return; el.innerHTML="";
+    for(let i=0;i<2;i++){
+      let div=document.createElement("div"),t=g.teams[i];
+      if(t){
+        let cls="vteam";
+        if(g.winner===t){
+          let oi=g.orderIdx;
+          if(finalPicks&&oi!=null&&finalPicks[oi]!=null){ cls+=finalPicks[oi]===t.id?" vcorrect":" vincorrect"; }
+          else { cls+=" vselected"; }
+        }
+        div.className=cls; div.textContent=t.name;
+      } else { div.className="vteam vplaceholder"; div.textContent="TBD"; }
+      el.appendChild(div);
+    }
+  }
+  function vbuildRegion(regionIdx,sideDiv){
+    let rTeams=allTeams.filter(t=>t.region===regionIdx);
+    let rounds=["vr64","vr32","vr16","vr8"].map(cls=>{ let d=document.createElement("div"); d.className="vround "+cls; return d; });
+    let r8=vnewGame(null,0),r16=[vnewGame(r8.id,0),vnewGame(r8.id,1)];
+    let r32=[vnewGame(r16[0].id,0),vnewGame(r16[0].id,1),vnewGame(r16[1].id,0),vnewGame(r16[1].id,1)];
+    let r64=[];
+    for(let i=0;i<8;i++){
+      let s1=seedOrder[i*2],s2=seedOrder[i*2+1];
+      let t1=rTeams.find(t=>t.seed===s1),t2=rTeams.find(t=>t.seed===s2);
+      let g=vnewGame(r32[Math.floor(i/2)].id,i%2);
+      g.teams[0]=t1; g.teams[1]=t2; r64.push(g); rounds[0].appendChild(vmakeEl(g));
+    }
+    r32.forEach(g=>rounds[1].appendChild(vmakeEl(g)));
+    r16.forEach(g=>rounds[2].appendChild(vmakeEl(g)));
+    rounds[3].appendChild(vmakeEl(r8));
+    rounds.forEach(r=>sideDiv.appendChild(r));
+    [...r64,...r32,...r16,r8].forEach(g=>{ g.orderIdx=vGameOrder.length; vGameOrder.push(g); });
+    return r8;
+  }
+  let vChamp=vnewGame(null,0),vsemL=vnewGame(vChamp.id,0),vsemR=vnewGame(vChamp.id,1);
+  let vl0=document.createElement("div"); vl0.className="center-label"; vl0.textContent=regionNames[0]+" / "+regionNames[1]; vcenter.appendChild(vl0);
+  vcenter.appendChild(vmakeEl(vsemL));
+  let vcl=document.createElement("div"); vcl.className="center-label"; vcl.style.marginTop="8px"; vcl.textContent="Championship"; vcenter.appendChild(vcl);
+  vcenter.appendChild(vmakeEl(vChamp));
+  let vl1=document.createElement("div"); vl1.className="center-label"; vl1.textContent=regionNames[2]+" / "+regionNames[3]; vcenter.appendChild(vl1);
+  vcenter.appendChild(vmakeEl(vsemR));
+  let vr8L0=vbuildRegion(0,vleft),vr8L1=vbuildRegion(1,vleft);
+  let vr8R0=vbuildRegion(2,vright),vr8R1=vbuildRegion(3,vright);
+  vr8L0.nextGameId=vsemL.id; vr8L0.nextSlot=0; vr8L1.nextGameId=vsemL.id; vr8L1.nextSlot=1;
+  vr8R0.nextGameId=vsemR.id; vr8R0.nextSlot=0; vr8R1.nextGameId=vsemR.id; vr8R1.nextSlot=1;
+  vsemL.orderIdx=vGameOrder.length; vGameOrder.push(vsemL);
+  vsemR.orderIdx=vGameOrder.length; vGameOrder.push(vsemR);
+  vChamp.orderIdx=vGameOrder.length; vGameOrder.push(vChamp);
+  vGameOrder.forEach((g,i)=>{
+    let tid=picks[i]; if(tid==null) return;
+    let team=teamById(tid); if(!team) return;
+    if(!g.teams.includes(team)) return;
+    g.winner=team;
+    if(g.nextGameId!=null){ vgames[g.nextGameId].teams[g.nextSlot]=team; }
+  });
+  vGameOrder.forEach(g=>vrenderGame(g));
+}
+
+// ---- UI ----
+function updateLockVisibility(){
+  let la=document.getElementById("lock-area"),sa=document.getElementById("submit-area");
+  if(mode==="final"){ la.style.display="none"; sa.style.display="none"; }
+  else if(players.length>=7){ la.style.display="block"; sa.style.display="none"; }
+  else { la.style.display="none"; sa.style.display="block"; }
+}
+
+function updateUI(){
+  let banner=document.getElementById("mode-banner");
+  if(mode==="final"){
+    banner.className="final";
+    banner.textContent="Final Bracket — click picks to set official results. Scores update live for everyone.";
+    banner.style.display="block";
+  } else {
+    banner.style.display="none";
+  }
+  updateLockVisibility();
+  gameOrder.forEach(g=>renderGame(g));
+}
+
+// ---- INIT ----
+drawBracket();
+</script>
+</body>
+</html>
