@@ -171,7 +171,7 @@ onValue(ref(db,"bracket"), (snapshot)=>{
   renderPlayerButtons();
   updateAllScores();
   updateUI();
-  if(isFinalMode && finalPicks){
+  if(mode === "final" && finalPicks){
     applyPicksToBracket(finalPicks);
   }
   if(activePlayerIdx!==null && players[activePlayerIdx]){
